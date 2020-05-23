@@ -63,28 +63,20 @@ airbnb_data <- readxl::read_excel(here::here("Data/Airbnb Data.xlsx"))
 
 # room_id: A unique number identifying an Airbnb listing. The listing has a 
 #          URL on the Airbnb web site of http://airbnb.com/rooms/room_id
-
 # host_id: Unique number identifying an Airbnb host. The host’s page has a 
 #          URL on the Airbnb web site of http://airbnb.com/users/show/host_id
-
 # room_type: One of “Entire home/apt”, “Private room”, or “Shared room”
-
 # city: The city or search area for which the survey is carried out. 
-
 # reviews: The number of reviews that a listing has received. Airbnb has said 
 #          that 70% of visits end up with a review, so the number of reviews can be 
 #          used to estimate the number of visits. Note that such an estimate will not 
 #          be reliable for an individual listing (especially as reviews occasionally 
 #          vanish from the site), but over a city as a whole it should be a useful 
 #          metric of traffic.
-
 # overall_satisfaction: The average rating (out of five) that the listing has received 
 #                       from those visitors who left a review.
-
 # accommodates: The number of guests a listing can accommodate.
-
 # bedrooms: The number of bedrooms a listing offers.
-
 # price: The price (in $US) for a night stay. In early surveys, there may be some 
 #        values that were recorded by month.
 
@@ -878,12 +870,67 @@ summary(airbnb_linreg3)
 #   - Identify outliers using Cook's distance approach
 
 # First, let's take a look at our data.
-marketing_data <- read.csv(here::here("Data/direct_marketing.csv"), header = T, sep = ",")
+marketing_data <- read.csv(here::here("Data/direct_marketing.csv"))
                           
 # convert to a tibble and get a glimpse of what we're working with
 (marketing_data <- as_tibble(marketing_data))
 
+# I found a brief description of the variables online:
 
+# Age: coded as young for ages 1 to 30, middle for 31 to 55, and older for 56+
+# Gender: male/female
+# OwnHome: Either own a home ('Own') or rent a home ('Rent')
+# Married: Either single or married
+# Salary: combined annual salary of the customer and spouse (if any)
+# Children: number of children living with the customer
+# History: Low if the customer was a low-spending customer last year,
+#          Medium if the customer was a medium-spending customer last year,
+#          High if the customer was a high-spending customer last year,
+# Catalogs: number of catalogs sent to the customer this year
+# AmountSpent: total amount of purchases made by the customer this year
+
+# Let's start by taking a look at the boxplot of the AmountSpent variable
+ggplot(marketing_data, aes(y = AmountSpent)) +
+  geom_boxplot(outlier.colour="slateblue3",
+               outlier.size=2,
+               color = "slateblue") +
+  theme_classic() +
+  # Let's change the names of the axes and title
+  labs(title = paste("Amount spent for", nrow(marketing_data), "customers"),
+       subtitle = "Outliers listed as dots in the visualization",
+       caption = "All units are in U.S. dollars ($)") +
+  ylab("Amount Spent ($)") +
+  # Center the title and format the subtitle/caption
+  theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
+        plot.subtitle = element_text(color = "slateblue", size = 10),
+        plot.caption = element_text(hjust = 1, face = "italic", color = "dark gray"),
+        # remove the x axis labels because they don't mean much for us
+        axis.text.x = element_blank()) +
+  # I thought the boxplot was too thick, so let's make it a little skinnier
+  scale_x_discrete()
+
+# How does AmountSpent vary based on how much a customer has spent in the previous
+# year? Let's re-do our boxplot and facet wrap on history
+ggplot(marketing_data, aes(x = History, y = AmountSpent)) +
+  geom_point(color = "slateblue3",
+               size = 2) +
+  # facet_wrap(~ History, scales = "free") +
+  theme_classic() +
+  # Let's change the names of the axes and title
+  labs(title = paste("Amount Spent for", nrow(marketing_data), "customers"),
+       subtitle = "By the amount spent by the customer in the previous year",
+       caption = "All units are in U.S. dollars ($)") +
+  ylab("Amount Spent ($)") +
+  xlab("") +
+  # Center the title and format the subtitle/caption
+  theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
+        plot.subtitle = element_text(color = "slateblue", size = 10),
+        plot.caption = element_text(hjust = 1, face = "italic", color = "dark gray")) +
+  # I thought the boxplot was too thick, so let's make it a little skinnier
+  scale_x_discrete()
+
+# Notice the different axes for each! Amount spent in the previous year is highly indicative
+# of total amount spent by the customer.
 
 
 ################################################################## 
