@@ -913,7 +913,8 @@ ggplot(marketing_data, aes(y = AmountSpent)) +
 # year? Let's re-do our boxplot and facet wrap on history
 ggplot(marketing_data, aes(x = History, y = AmountSpent)) +
   geom_point(color = "slateblue3",
-               size = 2) +
+               size = 2, 
+             alpha = .5) +
   # facet_wrap(~ History, scales = "free") +
   theme_classic() +
   # Let's change the names of the axes and title
@@ -929,7 +930,7 @@ ggplot(marketing_data, aes(x = History, y = AmountSpent)) +
   # I thought the boxplot was too thick, so let's make it a little skinnier
   scale_x_discrete()
 
-# Notice the different axes for each! Amount spent in the previous year is highly indicative
+# Notice the big differentials in spend! Amount spent in the previous year is highly indicative
 # of total amount spent by the customer.
 
 
