@@ -1,9 +1,5 @@
-# Linear-Regression
-In this script, I will employ a few facets of linear and logistic regression analysis to analyze the following three datasets:  
-
- 1. **AirBnB** -- This dataset contains a variety of indicators related to housing factors to predict on the price of a house  
- 2. **Direct Marketing** -- This dataset contains a variety of variables used to determine the Amount Spent on advertising  
- 3. **Titanic** -- This dataset contains various factors of the individuals aboard the Titanic. I will use those factors to predict whether someone survived
+# Airbnb
+In this script, I will employ a few facets of linear and logistic regression analysis to analyze a subset of **Airbnb** data focused on Asheville. This dataset contains a variety of indicators related to housing factors to predict on the price of a house.  
  
 The directory is organized as follows:  
 | Folder | Description |
@@ -15,7 +11,3 @@ The directory is organized as follows:
 
 *Note: The data can be found in the data folder as well as at the following locations:*  
 *https://courses.edx.org/assets/courseware/v1/2569c4a321e0ef4029009b3b4bc20904/asset-v1:GTx+MGT6203x+2T2020+type@asset+block/airbnb_data.csv*  
-
-*https://courses.edx.org/assets/courseware/v1/7ca09129dc34a9c6cdd2ec1b0be80cd2/asset-v1:GTx+MGT6203x+2T2020+type@asset+block/direct_marketing__2_.csv*  
-
-*http://math.ucdenver.edu/RTutorial/*   
