@@ -22,15 +22,13 @@
 ################################################################## 
 
 # Bring in packages
-suppressMessages(library("dplyr")) # Used for data cleaning
-suppressMessages(library("tidyr")) # Used for data cleaning
-suppressMessages(library("ggplot2")) # Used for visualization
-suppressMessages(library("stringr")) # Used for string manipulation
+suppressMessages(library("tidyverse")) # Used for data cleaning and visualization
 suppressMessages(library("here")) # Used for locating files in project folder
 suppressMessages(library("readxl")) # Used for reading excel files
 suppressMessages(library("reshape2")) # Used for reshaping data to tidy formats
 suppressMessages(library("olsrr")) # Used for detecting outliers/high leverage points
 suppressMessages(library("outliers")) # Used for detecting outliers
+suppressMessages(library("patchwork")) # Used for plotting multiple vizzes side-by-side
 
 
 ################################################################## 
@@ -178,7 +176,7 @@ ggplot(airbnb_vars, aes(y = airbnb_vars$price)) +
   labs(title = paste("Price for", nrow(airbnb_data), "houses", sep = " "),
        subtitle = "Outliers listed as dots in the visualization",
        caption = "*Price of houses per night") +
-  ylab("Price (per night)*") +
+  ylab("Price ($)*") +
   # Center the title and format the subtitle/caption
   theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
         plot.subtitle = element_text(color = "slateblue", size = 10),
@@ -245,7 +243,7 @@ ggplot(airbnb_combined, aes(y = price)) +
   labs(title = paste("Price for", nrow(airbnb_data), "houses", sep = " "),
        subtitle = "Outliers with a Cook's Distance greater than\n1 removed from the second visualization",
        caption = "*Price of houses per night") +
-  ylab("Price (per night)*") +
+  ylab("Price ($)*") +
   # Center the title and format the subtitle/caption
   theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
         plot.subtitle = element_text(color = "slateblue", size = 10),
@@ -337,7 +335,7 @@ ggplot(airbnb_combined3, aes(y = price)) +
   labs(title = paste("Price for", nrow(airbnb_data), "houses", sep = " "),
        subtitle = "Outliers with a Cook's Distance greater than 1 are removed from the second visualization.\nOutliers are removed from the third visualization using Grubbs' Test.",
        caption = "*Price of houses per night") +
-  ylab("Price (per night)*") +
+  ylab("Price ($)*") +
   # Center the title and format the subtitle/caption
   theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
         plot.subtitle = element_text(color = "slateblue", size = 10),
@@ -356,6 +354,111 @@ summary(airbnb_linreg3)
 # is that the reviews explanatory variable has become significant by removing
 # outliers using Grubbs Test. Overall, though, I'd stick to just using Cook's 
 # Distance to remove high leverage points.
+
+
+### Log Transformation
+# Next, we'll revert back to our dataset pre-Grubbs and use a variety of logarithmic
+# transformations, which should help normalize the dataset. We'll target our energy
+# on price and overall_satisfaction
+
+## Linear-linear Model
+airbnb_linlin <- lm(price ~ overall_satisfaction, data = airbnb_lowlev)
+summary(airbnb_linlin)
+
+# Let's store our results so we can visualize them later.
+log_results <- tibble(transformation = "Linear-Linear", 
+                      r_squared = summary(airbnb_linlin)$r.squared,
+                      p_value = summary(airbnb_linlin)$coefficients[2, 4])
+  
+## Linear-Log Model
+# We'll first test to see how transforming the explanatory variable, overall
+# satisfaction affects the result. Note that we'll have to add 1 to the variable
+# before transformation since overall_satisfaction has a range of 0-5 and log(0)
+# equates to negative infinity, raising quite a number of problems.
+airbnb_linlog <- lm(price ~ log(overall_satisfaction + 1), data = airbnb_lowlev)
+
+# Bind the new results in so we have them for later.
+log_results <- bind_rows(log_results,
+                         tibble(transformation = "Linear-Log",
+                              r_squared = summary(airbnb_linlog)$r.squared,
+                              p_value = summary(airbnb_linlog)$coefficients[2, 4]))
+
+## Log-Linear Model
+# Next we'll test to see how transforming the response variable, price,
+# affects the result.
+airbnb_loglin <- lm(log(price) ~ overall_satisfaction, data = airbnb_lowlev)
+
+# Bind the new results in so we have them for later.
+log_results <- bind_rows(log_results,
+                         tibble(transformation = "Log-Linear",
+                           r_squared = summary(airbnb_loglin)$r.squared,
+                           p_value = summary(airbnb_loglin)$coefficients[2, 4]))
+
+## Log-Log Model
+# Lastly, we'll test to see how transforming both variables, price and
+# overall_satisfaction, affects the result. Note that we'll have to add 1 to the variable
+# before transformation since overall_satisfaction has a range of 0-5 and log(0)
+# equates to negative infinity, raising quite a number of problems.
+airbnb_loglog <- lm(log(price) ~ log(overall_satisfaction + 1), data = airbnb_lowlev)
+
+# Bind the new results in so we have them for later.
+log_results <- bind_rows(log_results,
+                         tibble(transformation = "Log-Log",
+                                r_squared = summary(airbnb_loglog)$r.squared,
+                                p_value = summary(airbnb_loglog)$coefficients[2, 4]))
+
+# Viz Time
+viz_rsquared <- ggplot(log_results,
+       # order by importance
+       aes(x = reorder(transformation, r_squared), y = round(100*r_squared, 4), group = 1), label = log_results$r_squared) +
+  # Let's make it a column graph and change the color
+  geom_col(fill = "slateblue2") +
+  # Add the rounded text labels in for r-squared so it's easier to read
+  geom_label(label = paste(100*round(log_results$r_squared, 4), "%", sep = "")) +
+  # Change the theme to classic
+  theme_classic() +
+  # Let's change the names of the axes and title
+  xlab("Transformation Type") +
+  ylab("Percent Deviation Explained") +
+  labs(title = "R-Squared for Different Logarithmic Transformations",
+       subtitle = "All transformation were performed using the log() function.") +
+  # format our title and subtitle
+  theme(plot.title = element_text(hjust = 0, color = "black"),
+        plot.subtitle = element_text(color = "dark gray", size = 10)) +
+  # flip the axes and fix the axis
+  coord_flip()
+
+viz_pvalue <- ggplot(log_results,
+       # order by importance
+       aes(x = reorder(transformation, p_value), y = round(p_value, 4), group = 1), label = log_results$p_value) +
+  # Let's make it a column graph and change the color
+  geom_col(fill = "slateblue2") +
+  # Add the rounded text labels in for r-squared so it's easier to read
+  geom_label(label = round(log_results$p_value, 5)) +
+  # Change the theme to classic
+  theme_classic() +
+  # Let's change the names of the axes and title
+  xlab("Transformation Type") +
+  ylab("P-value") +
+  labs(title = "P-value for Different Logarithmic Transformations",
+       subtitle = "All transformation were performed using the log() function.") +
+  # format our title and subtitle
+  theme(plot.title = element_text(hjust = 0, color = "black"),
+        plot.subtitle = element_text(color = "dark gray", size = 10)) +
+  # flip the axes and fix the axis
+  coord_flip()
+
+# Plot each using the patchwork library
+viz_rsquared + viz_pvalue
+
+# Based on these visualizations, it's evidently clear that the none of the models
+# are effective. The best transformation, the Linear-Log Model, only has an R-squared
+# of 3.5, which means that 96.5% of the variation in the relationship between price
+# and overall_satisfaction is unexplained by the model. This makes sense, since I
+# would not expect a large correlation between the price of an Airbnb rental and
+# the ultimate satisfaction with the experience, since experience is usually independent
+# of price.
+
 
 ### Correlation
 # Let's now look at a correlation matrix, so we have a better
