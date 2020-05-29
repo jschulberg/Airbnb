@@ -2,7 +2,9 @@
 title: "HW1 Submission"
 author: "Justin Schulberg"
 date: "5/28/2020"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
 # Linear/Logistic Regression Analysis    
@@ -11,7 +13,7 @@ In this script, I will employ a few facets of linear and logistic regression ana
   2. Direct Marketing -- This dataset contains a variety of variables used to determine the Amount Spent on advertising  
   3. Titanic -- This dataset contains various factors of the individuals aboard the Titanic. I will use those factors to predict whether someone survived
      
-```{r set up, message=FALSE, warning=FALSE, include=FALSE}
+```{r set_up, message=FALSE, warning=FALSE, include=FALSE}
 ################################################################## 
 # Set Up ---------------------------------------------------------
 ################################################################## 
@@ -75,7 +77,7 @@ airbnb_vars <- airbnb_cleaned %>%
 ```
 
 Now we'll get set up to run our linear regression model. Before running a linear regression model, let's set the seed to ensure randomization and reproducibility.
-```{r airbnb linreg1, echo=TRUE}
+```{r airbnb_linreg1, echo=TRUE}
 set.seed(123)
 
 # Regardless, let's trek on with a linear regression model
@@ -167,14 +169,14 @@ Cook's distance is a method used to detect outliers that have a lot of influence
   3. Examine the degree to which the fitted values change when our ith observation
      is deleted from the model  
      
-```{r cook's distance plot1, echo=TRUE}
+```{r cooks_distance_plot1, echo=TRUE}
 # Use the olsrr package to plot our Cook's distance
 olsrr::ols_plot_cooksd_bar(airbnb_linreg1)
 ```
 
 We can immediately see that a few points are really pulling the model outwards. Let's remove these from our dataset and re-run the model on this low leverage dataset.  
 
-```{r cook's removals, echo=TRUE, warning=FALSE}
+```{r cooks_removals, echo=TRUE, warning=FALSE}
 airbnb_lowlev <- airbnb_linreg1 %>%
   # Calculate the Cook's Distance
   cooks.distance() %>%
@@ -228,7 +230,7 @@ ggplot(airbnb_combined, aes(y = price)) +
 
 Now let's re-run the model with these two points missing.
 
-```{r cook's model, echo=TRUE}
+```{r cooks_model, echo=TRUE}
 airbnb_linreg2 <- lm(price ~ ., data = airbnb_lowlev)
 summary(airbnb_linreg2)
 ```
@@ -386,7 +388,7 @@ log_results <- bind_rows(log_results,
                                 p_value = summary(airbnb_loglog)$coefficients[2, 4]))
 
 # Viz Time
-viz_rsquared <- ggplot(log_results,
+ggplot(log_results,
        # order by importance
        aes(x = reorder(transformation, r_squared), y = round(100*r_squared, 4), group = 1), label = log_results$r_squared) +
   # Let's make it a column graph and change the color
@@ -406,7 +408,7 @@ viz_rsquared <- ggplot(log_results,
   # flip the axes and fix the axis
   coord_flip()
 
-viz_pvalue <- ggplot(log_results,
+ggplot(log_results,
        # order by importance
        aes(x = reorder(transformation, p_value), y = round(p_value, 4), group = 1), label = log_results$p_value) +
   # Let's make it a column graph and change the color
@@ -426,8 +428,6 @@ viz_pvalue <- ggplot(log_results,
   # flip the axes and fix the axis
   coord_flip()
 
-# Plot each using the patchwork library
-viz_rsquared + viz_pvalue
 ```
 
 Based on these visualizations, it's evidently clear that the none of the models are effective. The best transformation, the Linear-Log Model, only has an R-squared of 3.5, which means that 96.5% of the variation in the relationship between price and overall_satisfaction is unexplained by the model. This makes sense, since I would not expect a large correlation between the price of an Airbnb rental and the ultimate satisfaction with the experience, since experience is usually independent of price.  
@@ -487,13 +487,16 @@ In the second third of this script, I will analyze the marketing dataset, lookin
 
 First, let's take a look at our data.
 
-```{r directmarketing start}
+```{r directmarketing_start, echo=FALSE}
 marketing_data <- read.csv(here::here("Data/direct_marketing.csv"), header = T, sep = ",")
                           
 # convert to a tibble and get a glimpse of what we're working with
 (marketing_data <- as_tibble(marketing_data))
-# Before jumping into regression, let's take a look at the boxplot of
-# the amount spent variable
+```
+
+Before jumping into regression, let's take a look at the boxplot of the amount spent variable.
+
+```{r marketing_boxplot, echo=TRUE}
 ggplot(marketing_data, aes(y = marketing_data$AmountSpent)) +
   geom_boxplot(outlier.colour="slateblue3",
                outlier.size=2,
@@ -512,9 +515,11 @@ ggplot(marketing_data, aes(y = marketing_data$AmountSpent)) +
         axis.text.x = element_blank()) +
   # I thought the boxplot was too thick, so let's make it a little skinnier
   scale_x_discrete()
+```
 
-# We immediately notice that there are a number of outliers. I have a hunch
-# that it has to do with amount spent in previous year, so let's break this out further.
+We immediately notice that there are a number of outliers. I have a hunch that it has to do with amount spent in previous year, so let's break this out further.  
+
+```{r boxplotoutliers, echo=TRUE}
 ggplot(marketing_data, aes(y = AmountSpent, x = reorder(History, AmountSpent))) +
   geom_point(color = "slateblue") +
   theme_classic() +
@@ -528,12 +533,12 @@ ggplot(marketing_data, aes(y = AmountSpent, x = reorder(History, AmountSpent))) 
   theme(plot.title = element_text(hjust = 0, color = "slateblue4"),
         plot.subtitle = element_text(color = "slateblue", size = 10),
         plot.caption = element_text(hjust = 1, face = "italic", color = "dark gray"))
+```
 
-### One-hot Encoding
-# First we'll start by running a regression model with AmountSpent as our response variable 
-# and History and Salary as our explanatory variables. Before we run a linear regression 
-# model on the data, let's create indicator variables also known as "One-hot Encoding" 
-# on the History column. Our base case will be when there is no recent history on the customer's purchases.
+
+#### One-hot Encoding
+First we'll start by running a regression model with AmountSpent as our response variable and History and Salary as our explanatory variables. Before we run a linear regression model on the data, let's create indicator variables also known as "One-hot Encoding" on the History column. Our base case will be when there is no recent history on the customer's purchases.  
+```{r encode_indicators, echo=TRUE}
 marketing_encoded <- marketing_data %>%
   # Only bring in the variables of interest
   select(AmountSpent, Salary, History) %>%
@@ -549,10 +554,13 @@ marketing_encoded <- marketing_data %>%
   # Since the History variable is now redundant since we one-hot encoded it, let's
   # get rid of our original variable. In situations where each of our indicators is
   # '0', we know that there is no spending history for the customer.
-  select(-History) %>%
-  print()
+  select(-History)
 
-# Fit our first linear regression model
+```
+
+Now that we have our variables of interest, we'll fit our first linear regression model.
+
+```{r marketing_regression1, echo=TRUE}
 marketing_linreg1 <- lm(AmountSpent ~ ., data = marketing_encoded)
 summary(marketing_linreg1)
 ```
@@ -587,7 +595,7 @@ In the last third of this script, I will analyze the titanic dataset, looking at
 
 First, let's take a look at our data using read_tsv, which works on tab-separated values, like the text file I got off this [site](http://math.ucdenver.edu/RTutorial/).
 
-```{r titanic}
+```{r titanic, echo=FALSE}
 titanic_data <- readr::read_tsv(here::here("Data/titanic.txt"))
 
 # convert to a tibble and display
@@ -601,7 +609,7 @@ Age	Age in years
 sex	gender  
 survival	Survival	0 = No, 1 = Yes  
 
-```{r nulls}
+```{r nulls, echo=TRUE}
 # What percentage of each column is null?
 sapply(titanic_data, function(x) paste(100*round(sum(is.na(x))/2629, 3), "%", sep = ""))
 ```
@@ -609,7 +617,7 @@ The fact that almost half of our age data is null is concerning. We'll either ha
 
 I noticed that one of the rows has a weird value in it, where PClass = PClass and the other values are NA, so let's remove it. We'll also do some other data prep, like converting to factors and rounding out the ages.  
 
-```{r titanic prep}
+```{r titanic prep, echo=TRUE}
 titanic_prepped <- titanic_data %>% 
   filter(!(PClass == "PClass")) %>%
   # Make Sex, PClass and Survived factors
@@ -622,7 +630,7 @@ titanic_prepped <- titanic_data %>%
 
 Now we'll look at the relationship between gender and survival rate. First, let's take a look at the data.  
 
-```{r gender/survival relationship}
+```{r gender/survival relationship, echo=TRUE}
 ggplot(aes(x = Sex, y = Survived), data = titanic_prepped) + 
   geom_jitter(colour = "slateblue") +
   theme_classic() +
@@ -640,7 +648,7 @@ ggplot(aes(x = Sex, y = Survived), data = titanic_prepped) +
 
 From this, we can clearly see that more females tended to survive than die, and more males tended to die than survive. Additionally, of those who survived, more were females and of those who died, more were male. 
 
-```{r survival/gender relationship2}
+```{r survival/gender_relationship2, echo=TRUE}
 100*round(prop.table(table(titanic_prepped$Sex)), 3)
 ```
 
@@ -650,7 +658,7 @@ Before we jump to conclusions, just note that 65% of our passengers are male, bu
 ### Logistic Regression  
 Now, we'll run a logistic regression model on our dataset, using Sex as the explanatory variable and Survived as the response variable.
 
-```{r titanic regression}
+```{r titanic_regression, echo=TRUE}
 # Start by setting the seed to ensure randomization and reproducibility
 set.seed(123)
 
@@ -666,20 +674,20 @@ Female survival rate is the value when
 *log(p/(1-p)) = B0*  
 To find p, the probability that a female survives, we solve for p and assume a log-base of e. Thus:  
 *p = exp(B0)/(1+exp(B0))*  
-```{r femalesurvivalrate}
+```{r femalesurvivalrate, echo=TRUE}
 (female_survival <- exp(titanic_logmod$coefficients[[1]])/(1 + exp(titanic_logmod$coefficients[[1]])))
 ```
 
 We can apply the same logic for males, this time adding the two coefficients together before exponentiating. The math looks a little messy, but we get the right results. This will, in effect, be  
 *p = exp(B0 + B1)/(1+exp(B0 + B1))*  
-```{r male_survival_rate}
+
+```{r male_survival_rate, echo=TRUE}
 (male_survival <- exp(titanic_logmod$coefficients[[1]] + titanic_logmod$coefficients[[2]])/(1 + exp(titanic_logmod$coefficients[[1]] + titanic_logmod$coefficients[[2]])))
 ```
 
-Thus, the probability that a female survives is 66.7% and the probability that a male survives is 16.7%. This makes sense because, at least in the movie, they tended
-to put women and children on life boats. If we brought in age too, I'd expect that most of the males who survived were young (children).  
+Thus, the probability that a female survives is 66.7% and the probability that a male survives is 16.7%. This makes sense because, at least in the movie, they tended to put women and children on life boats. If we brought in age too, I'd expect that most of the males who survived were young (children).  
 
-```{r visualize_gender_survival}
+```{r visualize_gender_survival, echo=TRUE}
 # Let's save our results so we can visualize them
 survival_rates <- tibble(gender = c("Male", "Female"),
                          rate = c(male_survival, female_survival))
